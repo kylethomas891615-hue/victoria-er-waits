@@ -28,7 +28,7 @@
 <body>
 <header>
   <h1>Greater Victoria ER waits</h1>
-  <p class="note" id="fail-note">Update failed at 12:36 a.m. PT, October 3, 2026 — showing last verified numbers.</p>
+  <p class="note" id="updated">Last updated 12:38 a.m. PT, October 3, 2026</p>
   <p id="status">Checking Island Health…</p>
 </header>
 <main>
@@ -37,14 +37,14 @@
     <p class="city">Victoria</p>
     <p class="wait" id="vgh">9 hours 30 minutes</p>
     <p class="drive" id="vgh-drive"></p>
-    <p class="read" id="vgh-read">Read 12:35 a.m. PT, October 3, 2026</p>
+    <p class="read" id="vgh-read">Read 12:38 a.m. PT, October 3, 2026</p>
   </article>
   <article>
     <h2>Royal Jubilee Hospital</h2>
     <p class="city">Victoria</p>
     <p class="wait" id="rjh">8 hours</p>
     <p class="drive" id="rjh-drive"></p>
-    <p class="read" id="rjh-read">Read 12:35 a.m. PT, October 3, 2026</p>
+    <p class="read" id="rjh-read">Read 12:38 a.m. PT, October 3, 2026</p>
   </article>
   <article>
     <h2>Saanich Peninsula Hospital</h2>
@@ -52,7 +52,7 @@
     <p class="wait closed" id="sph">Closed</p>
     <p class="drive" id="sph-drive"></p>
     <p class="hours">Open 7 a.m. to 10 p.m. only.</p>
-    <p class="read" id="sph-read">Read 12:35 a.m. PT, October 3, 2026</p>
+    <p class="read" id="sph-read">Read 12:38 a.m. PT, October 3, 2026</p>
   </article>
 
   <h2 class="section">Urgent and primary care</h2>
@@ -81,7 +81,7 @@
   <p class="note">Source: <a href="https://www.islandhealth.ca/find-care">Island Health, Need care now</a>.</p>
 </main>
 <script>
-const SNAP = "12:35 a.m. PT, October 3, 2026";
+const SNAP = "12:38 a.m. PT, October 3, 2026";
 const WANTED = [
   ["Victoria General Hospital ED", "vgh"],
   ["Royal Jubilee Hospital ED", "rjh"],
@@ -111,10 +111,19 @@ fetch("https://www.islandhealth.ca/find-care", { cache: "no-store" })
     const missing = WANTED.filter(([name]) => !found[name]);
     if (missing.length) throw new Error("missing " + missing.map(m => m[0]).join(", "));
     const stamp = new Date().toLocaleString("en-CA", { timeZone: "America/Vancouver", hour: "numeric", minute: "2-digit", month: "long", day: "numeric", year: "numeric" }) + " PT";
+    const offHours = (() => {
+      const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/Vancouver", hour: "numeric", minute: "numeric", hourCycle: "h23" }).formatToParts(new Date());
+      const hour = Number(parts.find(p => p.type === "hour").value);
+      const minute = Number(parts.find(p => p.type === "minute").value);
+      const mins = hour * 60 + minute;
+      return mins < 7 * 60 || mins >= 22 * 60;
+    })();
     WANTED.forEach(([name, id]) => {
       const el = document.getElementById(id);
-      el.textContent = found[name];
-      el.classList.toggle("closed", /closed/i.test(found[name]));
+      let text = found[name];
+      if (id === "sph" && offHours) text = "Closed";
+      el.textContent = text;
+      el.classList.toggle("closed", /closed/i.test(text));
       document.getElementById(id + "-read").textContent = "Read " + stamp;
     });
     document.getElementById("status").textContent = "Read just now from Island Health.";
