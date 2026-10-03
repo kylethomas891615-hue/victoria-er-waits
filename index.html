@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Greater Victoria ER waits</title>
+<style>
+  :root { --bg:#0e1a17; --card:#f6f3ec; --ink:#1a1a16; --muted:#5c584e; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:17px/1.4 "Segoe UI", Helvetica, Arial, sans-serif; background:var(--bg); color:var(--ink); }
+  header { padding:18px 16px 8px; color:#f6f3ec; }
+  header h1 { font-size:22px; margin:0 0 4px; }
+  header p, .note { margin:0; color:#c9d5d0; font-size:14px; }
+  main { padding:12px 14px 28px; max-width:520px; }
+  article { background:var(--card); border-radius:12px; padding:14px 14px 12px; margin:0 0 10px; }
+  h2 { font-size:16px; margin:0; }
+  .city { color:var(--muted); font-size:13px; margin:2px 0 8px; }
+  .wait { font-size:28px; font-weight:700; letter-spacing:-0.02em; }
+  .hours, .read { margin:6px 0 0; font-size:14px; color:var(--muted); }
+  .note { margin-top:12px; }
+  .note a { color:#f3d48a; }
+  .closed { color:#8a2e24; }
+  #status { color:#f3d48a; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Greater Victoria ER waits</h1>
+  <p id="status">Checking Island Health…</p>
+</header>
+<main>
+  <article>
+    <h2>Victoria General Hospital</h2>
+    <p class="city">Victoria</p>
+    <p class="wait" id="vgh">8 hours 30 minutes</p>
+    <p class="read" id="vgh-read">Read 12:16 a.m. PT, October 3, 2026</p>
+  </article>
+  <article>
+    <h2>Royal Jubilee Hospital</h2>
+    <p class="city">Victoria</p>
+    <p class="wait" id="rjh">8 hours 45 minutes</p>
+    <p class="read" id="rjh-read">Read 12:16 a.m. PT, October 3, 2026</p>
+  </article>
+  <article>
+    <h2>Saanich Peninsula Hospital</h2>
+    <p class="city">Saanichton</p>
+    <p class="wait closed" id="sph">Closed</p>
+    <p class="hours">Open 7 a.m. to 10 p.m. only.</p>
+    <p class="read" id="sph-read">Read 12:16 a.m. PT, October 3, 2026</p>
+  </article>
+  <p class="note">Waits are estimates for non-urgent visits. Serious cases jump the queue. Call 911 for an emergency.</p>
+  <p class="note">Source: <a href="https://www.islandhealth.ca/find-care">Island Health, Need care now</a>.</p>
+</main>
+<script>
+const SNAP = "12:16 a.m. PT, October 3, 2026";
+const WANTED = [
+  ["Victoria General Hospital ED", "vgh"],
+  ["Royal Jubilee Hospital ED", "rjh"],
+  ["Saanich Peninsula Hospital ED", "sph"]
+];
+function showSnap(reason) {
+  document.getElementById("status").textContent = reason;
+}
+function clean(html) {
+  const t = document.createElement("div");
+  t.innerHTML = html;
+  return (t.textContent || "").replace(/\s+/g, " ").trim();
+}
+fetch("https://www.islandhealth.ca/find-care", { cache: "no-store" })
+  .then(r => {
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    return r.text();
+  })
+  .then(html => {
+    const parts = html.split('class="emergency-departments');
+    const found = {};
+    parts.slice(1).forEach(p => {
+      const name = (p.match(/token-name">\s*(?:<a[^>]*>)?([^<]+)/) || [])[1];
+      const inner = (p.match(/class="inner">\s*([\s\S]*?)\s*<\/div>/) || [])[1];
+      if (name && inner) found[name.trim()] = clean(inner);
+    });
+    const missing = WANTED.filter(([name]) => !found[name]);
+    if (missing.length) throw new Error("missing " + missing.map(m => m[0]).join(", "));
+    const stamp = new Date().toLocaleString("en-CA", { timeZone: "America/Vancouver", hour: "numeric", minute: "2-digit", month: "long", day: "numeric", year: "numeric" }) + " PT";
+    WANTED.forEach(([name, id]) => {
+      const el = document.getElementById(id);
+      el.textContent = found[name];
+      el.classList.toggle("closed", /closed/i.test(found[name]));
+      document.getElementById(id + "-read").textContent = "Read " + stamp;
+    });
+    document.getElementById("status").textContent = "Read just now from Island Health.";
+  })
+  .catch(() => {
+    showSnap("Live read blocked. Island Health does not send an access header, so this page cannot read the site. Last snapshot is still showing, read " + SNAP + ".");
+  });
+</script>
+</body>
+</html>
