@@ -16,7 +16,8 @@
   h2 { font-size:16px; margin:0; }
   .city { color:var(--muted); font-size:13px; margin:2px 0 8px; }
   .wait { font-size:28px; font-weight:700; letter-spacing:-0.02em; }
-  .hours, .read { margin:6px 0 0; font-size:14px; color:var(--muted); }
+  .hours, .read, .drive { margin:6px 0 0; font-size:14px; color:var(--muted); }
+  .total { font-size:16px; font-weight:650; color:var(--ink); margin:8px 0 0; }
   .note { margin-top:12px; }
   .note a { color:#f3d48a; }
   .closed { color:#8a2e24; }
@@ -33,18 +34,21 @@
     <h2>Victoria General Hospital</h2>
     <p class="city">Victoria</p>
     <p class="wait" id="vgh">8 hours 30 minutes</p>
+    <p class="drive" id="vgh-drive"></p>
     <p class="read" id="vgh-read">Read 12:16 a.m. PT, October 3, 2026</p>
   </article>
   <article>
     <h2>Royal Jubilee Hospital</h2>
     <p class="city">Victoria</p>
     <p class="wait" id="rjh">8 hours 45 minutes</p>
+    <p class="drive" id="rjh-drive"></p>
     <p class="read" id="rjh-read">Read 12:16 a.m. PT, October 3, 2026</p>
   </article>
   <article>
     <h2>Saanich Peninsula Hospital</h2>
     <p class="city">Saanichton</p>
     <p class="wait closed" id="sph">Closed</p>
+    <p class="drive" id="sph-drive"></p>
     <p class="hours">Open 7 a.m. to 10 p.m. only.</p>
     <p class="read" id="sph-read">Read 12:16 a.m. PT, October 3, 2026</p>
   </article>
@@ -93,6 +97,68 @@ fetch("https://www.islandhealth.ca/find-care", { cache: "no-store" })
   .catch(() => {
     showSnap("Live read blocked. Island Health does not send an access header, so this page cannot read the site. Last snapshot is still showing, read " + SNAP + ".");
   });
+
+const PLACES = {
+  vgh: { lon: -123.4319, lat: 48.4676, name: "Victoria General" },
+  rjh: { lon: -123.3278, lat: 48.4334, name: "Royal Jubilee" },
+  sph: { lon: -123.4172, lat: 48.5663, name: "Saanich Peninsula" }
+};
+function waitMinutes(text) {
+  if (/closed/i.test(text)) return null;
+  const h = text.match(/(\d+)\s*hours?/i);
+  const m = text.match(/(\d+)\s*minutes?/i);
+  if (!h && !m) return null;
+  return (h ? Number(h[1]) : 0) * 60 + (m ? Number(m[1]) : 0);
+}
+function fmt(mins) {
+  const h = Math.floor(mins / 60), m = mins % 60;
+  if (h && m) return h + " h " + m + " min";
+  if (h) return h + " h";
+  return m + " min";
+}
+function showRaw(msg) {
+  document.getElementById("drive-note").textContent = msg;
+}
+function addDrive(lat, lon) {
+  const jobs = Object.entries(PLACES).map(([id, place]) => {
+    const url = "https://router.project-osrm.org/route/v1/driving/" +
+      lon + "," + lat + ";" + place.lon + "," + place.lat + "?overview=false";
+    return fetch(url).then(r => {
+      if (!r.ok) throw new Error("route " + r.status);
+      return r.json();
+    }).then(data => {
+      const sec = data && data.routes && data.routes[0] && data.routes[0].duration;
+      if (!sec && sec !== 0) throw new Error("no route");
+      const drive = Math.max(1, Math.round(sec / 60));
+      const el = document.getElementById(id);
+      const line = document.getElementById(id + "-drive");
+      const wait = waitMinutes(el.textContent);
+      if (wait == null) {
+        line.textContent = "Drive about " + fmt(drive) + ". No total while closed.";
+        return;
+      }
+      line.innerHTML = "Drive about " + fmt(drive) + ". <span class='total'>About " + fmt(wait + drive) + " with the drive.</span>";
+    });
+  });
+  return Promise.all(jobs);
+}
+const note = document.createElement("p");
+note.className = "note";
+note.id = "drive-note";
+note.textContent = "Asking for your location to add drive time.";
+document.querySelector("main").insertBefore(note, document.querySelector("main .note"));
+if (!navigator.geolocation) {
+  showRaw("Location is not available. Showing the ER wait only.");
+} else {
+  navigator.geolocation.getCurrentPosition(pos => {
+    addDrive(pos.coords.latitude, pos.coords.longitude)
+      .then(() => { note.textContent = "Drive time is from your location just now. It is added only when the department shows a wait."; })
+      .catch(() => { showRaw("Drive time could not be calculated. Showing the ER wait only."); });
+  }, () => {
+    showRaw("Location was denied. Showing the ER wait only.");
+  }, { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 });
+}
+
 </script>
 </body>
 </html>
