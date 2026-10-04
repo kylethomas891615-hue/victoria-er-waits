@@ -13,7 +13,9 @@
   header p, .note { margin:0; color:#c9d5d0; font-size:14px; }
   main { padding:12px 14px 28px; max-width:520px; }
   article { background:var(--card); border-radius:12px; padding:14px 14px 12px; margin:0 0 10px; }
-  a.tip-card { display:flex; align-items:center; width:100%; max-width:492px; min-height:112px; background:var(--card); color:var(--ink); border-radius:12px; padding:14px 14px 12px; margin:10px 0 0; font-size:16px; font-weight:700; text-decoration:none; }
+  .tip-card { display:flex; flex-direction:column; justify-content:center; width:100%; max-width:492px; min-height:125px; background:var(--card); color:var(--ink); border-radius:12px; padding:14px 14px 12px; margin:10px 0 0; font-size:14px; font-weight:400; line-height:1.35; }
+  .tip-card p { margin:0; color:var(--ink); font-size:14px; }
+  .tip-card a { color:var(--ink); font-weight:700; margin-top:6px; font-size:16px; }
   h2 { font-size:16px; margin:0; }
   .city { color:var(--muted); font-size:13px; margin:2px 0 8px; }
   .wait { font-size:28px; font-weight:700; letter-spacing:-0.02em; }
@@ -29,7 +31,7 @@
 <body>
 <header>
   <h1>Greater Victoria ER waits</h1>
-  <a class="tip-card" href="https://www.buymeacoffee.com/kylethomas" target="_blank" rel="noopener noreferrer">tips to keep the page running (link)</a>
+  <div class="tip-card"><p>Ad-free and built for the community. If this tool saved you a headache today, consider buying me a coffee to keep it online.</p><a href="https://www.buymeacoffee.com/kylethomas" target="_blank" rel="noopener noreferrer">☕ Buy the dev a coffee</a></div>
   <p class="note">Tip for this page. Not a hospital payment.</p>
   <p class="note" id="updated">Last updated 4:36 pm. PT, October 4, 2026</p>
   <p id="status">From Island Health</p>
