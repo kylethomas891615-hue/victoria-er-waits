@@ -57,33 +57,37 @@
   </article>
 
   <h2 class="section">Urgent and primary care</h2>
-  <article>
+  <article id="upcc-dt">
     <h2>Downtown Victoria</h2>
+    <p class="hours">1107 Pandora Ave.</p>
     <p class="hours">Monday to Sunday, 8:00 a.m. to 8:00 p.m.</p>
     <p class="hours">Call 1-833-688-8722</p>
   </article>
-  <article>
+  <article id="upcc-esq">
     <h2>Esquimalt</h2>
+    <p class="hours">890 Esquimalt Road</p>
     <p class="hours">Monday to Sunday, 8:00 a.m. to 8:00 p.m.</p>
     <p class="hours">Call 1-833-688-8722</p>
   </article>
-  <article>
+  <article id="upcc-jb">
     <h2>James Bay</h2>
+    <p class="hours">Unit B - 547 Michigan Street</p>
     <p class="hours">Monday to Sunday, 8:00 a.m. to 8:00 p.m.</p>
     <p class="hours">Call 1-833-688-8722</p>
   </article>
-  <article>
+  <article id="upcc-ws">
     <h2>Westshore</h2>
+    <p class="hours">582 Goldstream Avenue</p>
     <p class="hours">Monday to Sunday, 8:00 a.m. to 8:00 p.m.</p>
     <p class="hours">Call 1-833-688-8722</p>
   </article>
-  <article>
+  <article id="upcc-gorge">
     <h2>Gorge</h2>
     <p class="hours">63 Gorge Road East</p>
     <p class="hours">Monday to Sunday, 8:00 a.m. to 8:00 p.m.</p>
     <p class="hours">Call 1-833-688-8722</p>
   </article>
-  <article>
+  <article id="upcc-nq">
     <h2>North Quadra</h2>
     <p class="hours">100-4420 Chatterton Way</p>
     <p class="hours">Monday to Sunday, 8:00 a.m. to 8:00 p.m.</p>
@@ -151,6 +155,34 @@ const PLACES = {
   rjh: { lon: -123.3278, lat: 48.4334, name: "Royal Jubilee" },
   sph: { lon: -123.4172, lat: 48.5663, name: "Saanich Peninsula" }
 };
+const CLINICS = {
+  "upcc-dt": { lon: -123.3526929, lat: 48.4265252 },
+  "upcc-esq": { lon: -123.4007940, lat: 48.4311651 },
+  "upcc-jb": { lon: -123.3712933, lat: 48.4167121 },
+  "upcc-ws": { lon: -123.4871894, lat: 48.4468231 },
+  "upcc-gorge": { lon: -123.3882705, lat: 48.4416775 },
+  "upcc-nq": { lon: -123.3831764, lat: 48.4873645 }
+};
+function addClinicDrive(lat, lon) {
+  Object.entries(CLINICS).forEach(([id, place]) => {
+    const url = "https://router.project-osrm.org/route/v1/driving/" +
+      lon + "," + lat + ";" + place.lon + "," + place.lat + "?overview=false";
+    fetch(url).then(r => {
+      if (!r.ok) throw new Error("route " + r.status);
+      return r.json();
+    }).then(data => {
+      const sec = data && data.routes && data.routes[0] && data.routes[0].duration;
+      if (!sec && sec !== 0) throw new Error("no route");
+      const drive = Math.max(1, Math.round(sec / 60));
+      const card = document.getElementById(id);
+      if (!card || card.querySelector(".drive")) return;
+      const line = document.createElement("p");
+      line.className = "drive";
+      line.textContent = "Drive about " + fmt(drive) + ".";
+      card.appendChild(line);
+    }).catch(() => {});
+  });
+}
 function waitMinutes(text) {
   if (/closed/i.test(text)) return null;
   const h = text.match(/(\d+)\s*hours?/i);
@@ -199,6 +231,7 @@ if (!navigator.geolocation) {
   showRaw("Location is not available. Showing the ER wait only.");
 } else {
   navigator.geolocation.getCurrentPosition(pos => {
+    addClinicDrive(pos.coords.latitude, pos.coords.longitude);
     addDrive(pos.coords.latitude, pos.coords.longitude)
       .then(() => { note.textContent = "Drive time is from your location just now. It is added only when the department shows a wait."; })
       .catch(() => { showRaw("Drive time could not be calculated. Showing the ER wait only."); });
