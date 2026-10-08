@@ -32,7 +32,7 @@
 <header>
   <h1>Greater Victoria ER waits</h1>
   <div class="tip-card"><p>Ad-free and built for the community. If this tool saved you a headache today, consider buying me a coffee to keep it online.</p><a href="https://www.buymeacoffee.com/kylethomas" target="_blank" rel="noopener noreferrer">☕ Buy the dev a coffee</a></div>
-  <p class="note" id="updated">Last updated 1:28 p.m. PT, October 5, 2026</p>
+  <p class="note" id="updated">Last updated 8:46 p.m. PT, October 7, 2026</p>
   <p id="status">From Island Health</p>
 </header>
 <main>
@@ -101,57 +101,6 @@
   <p class="note">Source: <a href="https://www.islandhealth.ca/find-care">Island Health, Need care now</a>.</p>
 </main>
 <script>
-const SNAP = "12:14 p.m. PT, October 7, 2026";
-const WANTED = [
-  ["Victoria General Hospital ED", "vgh"],
-  ["Royal Jubilee Hospital ED", "rjh"],
-  ["Saanich Peninsula Hospital ED", "sph"]
-];
-function showSnap(reason) {
-  document.getElementById("status").textContent = reason;
-}
-function clean(html) {
-  const t = document.createElement("div");
-  t.innerHTML = html;
-  return (t.textContent || "").replace(/\s+/g, " ").trim();
-}
-fetch("https://www.islandhealth.ca/find-care", { cache: "no-store" })
-  .then(r => {
-    if (!r.ok) throw new Error("HTTP " + r.status);
-    return r.text();
-  })
-  .then(html => {
-    const parts = html.split('class="emergency-departments');
-    const found = {};
-    parts.slice(1).forEach(p => {
-      const name = (p.match(/token-name">\s*(?:<a[^>]*>)?([^<]+)/) || [])[1];
-      const inner = (p.match(/class="inner">\s*([\s\S]*?)\s*<\/div>/) || [])[1];
-      if (name && inner) found[name.trim()] = clean(inner);
-    });
-    const missing = WANTED.filter(([name]) => !found[name]);
-    if (missing.length) throw new Error("missing " + missing.map(m => m[0]).join(", "));
-    const stamp = new Date().toLocaleString("en-CA", { timeZone: "America/Vancouver", hour: "numeric", minute: "2-digit", month: "long", day: "numeric", year: "numeric" }) + " PT";
-    const offHours = (() => {
-      const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/Vancouver", hour: "numeric", minute: "numeric", hourCycle: "h23" }).formatToParts(new Date());
-      const hour = Number(parts.find(p => p.type === "hour").value);
-      const minute = Number(parts.find(p => p.type === "minute").value);
-      const mins = hour * 60 + minute;
-      return mins < 7 * 60 || mins >= 22 * 60;
-    })();
-    WANTED.forEach(([name, id]) => {
-      const el = document.getElementById(id);
-      let text = found[name];
-      if (id === "sph" && offHours) text = "Closed";
-      el.textContent = text;
-      el.classList.toggle("closed", /closed/i.test(text));
-      document.getElementById(id + "-read").textContent = "Read " + stamp;
-    });
-    document.getElementById("status").textContent = "Read just now from Island Health.";
-  })
-  .catch(() => {
-    showSnap("Live read blocked. Island Health does not send an access header, so this page cannot read the site. Last snapshot is still showing, read " + SNAP + ".");
-  });
-
 const PLACES = {
   vgh: { lon: -123.4319, lat: 48.4676, name: "Victoria General" },
   rjh: { lon: -123.3278, lat: 48.4334, name: "Royal Jubilee" },

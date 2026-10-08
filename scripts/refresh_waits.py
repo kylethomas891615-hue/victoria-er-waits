@@ -5,8 +5,9 @@ Source: https://www.islandhealth.ca/find-care (the waits are server-rendered in
 the HTML; each ED is a `div.emergency-departments` card with an `h2.token-name`
 and a `div.wait-time > div.inner`).
 
-Only six elements are ever changed: p#vgh, p#rjh, p#sph and p#vgh-read,
-p#rjh-read, p#sph-read. Nothing is guessed: if a hospital's posted wait cannot
+Only these elements are ever changed: p#vgh, p#rjh, p#sph, p#vgh-read,
+p#rjh-read, p#sph-read, and the header p#updated ("Last updated <read time>"),
+which is set to the same read time whenever the page is rewritten. Nothing is guessed: if a hospital's posted wait cannot
 be read, its old value and old read time are left as they are.
 
 SPH conventions (same as the existing page):
@@ -127,6 +128,10 @@ def apply(index, values, read):
         new, n2 = read_re.subn(lambda _m: f'<p class="read" id="{el}-read">Read {read}</p>', new, count=1)
         if n1 != 1 or n2 != 1:
             raise SystemExit(2)
+    upd_re = re.compile(r'<p class="note" id="updated">[^<]*</p>')
+    new, n3 = upd_re.subn(lambda _m: f'<p class="note" id="updated">Last updated {read}</p>', new, count=1)
+    if n3 != 1:
+        raise SystemExit(2)
     return new
 
 
